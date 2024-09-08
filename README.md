@@ -45,3 +45,119 @@ server {
     }
 }
 ```
+* **nginx.conf**
+```
+user  nginx;
+worker_processes  auto;
+         
+error_log /var/log/nginx/error.log notice;
+pid       /var/run/nginx.pid;
+
+events {
+    worker_connections 1024;
+}
+
+http {         
+    include      /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    
+    access_log  /var/log/nginx/access.log;
+    
+    sendfile    on;
+    keepalive_timeout  65;
+         
+    include /etc/nginx/conf.d/*.conf;
+}
+```
+* **index.html**
+```
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+html { color-scheme: light dark; }
+body { width: 35em; margin: 0 auto;
+font-family: Tahoma, Verdana, Arial, sans-serif; }
+</style>
+</head>
+<body>
+<h1>Welcome to CUSTOM NGINX!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.
+         
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+```
+* **Dockerfile**
+```
+FROM alpine:latest
+RUN apk update && apk upgrade
+RUN apk add nginx
+RUN mkdir /etc/nginx/conf.d
+COPY default.conf /etc/nginx/conf.d/
+COPY nginx.conf /etc/nginx/nginx.conf
+RUN mkdir /usr/share/nginx/html
+COPY index.html  /usr/share/nginx/html/
+CMD ["/usr/sbin/nginx", "-g", "daemon off;"]
+```
+* Подготовка кастомного образа nginx
+```
+docker build -t nginx-custom:v1 .
+```
+* Запуск контейнера nginx из образа nginx-custom:v1
+```
+docker run -d -p 8080:80 nginx-custom:v1
+```
+* Проверка работы Docker
+```
+root@dmikhaylov-Ubuntu2204:/home/vagrant/docker# docker images
+REPOSITORY     TAG       IMAGE ID       CREATED         SIZE
+nginx-custom   v1        685770c8734b   2 hours ago     11.6MB
+
+root@dmikhaylov-Ubuntu2204:/home/vagrant/docker# docker ps
+CONTAINER ID   IMAGE             COMMAND                  CREATED       STATUS       PORTS                                     NAMES
+40961acc9915   nginx-custom:v1   "/usr/sbin/nginx -g …"   2 hours ago   Up 2 hours   0.0.0.0:8080->80/tcp, [::]:8080->80/tcp   gifted_kilby
+
+root@dmikhaylov-Ubuntu2204:/home/vagrant/docker# ps afx | grep docker
+ 247400 pts/0    S+     0:00  |   |   \_ grep --color=auto docker
+ 107338 ?        Ssl    0:02 /usr/bin/dockerd -H fd:// --containerd=/run/containerd/containerd.sock
+ 211113 ?        Sl     0:00  \_ /usr/bin/docker-proxy -proto tcp -host-ip 0.0.0.0 -host-port 8080 -container-ip 172.17.0.2 -container-port 80
+ 211137 ?        Sl     0:00  \_ /usr/bin/docker-proxy -proto tcp -host-ip :: -host-port 8080 -container-ip 172.17.0.2 -container-port 80
+
+
+root@dmikhaylov-Ubuntu2204:/home/vagrant/docker# curl http://localhost:8080
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+html { color-scheme: light dark; }
+body { width: 35em; margin: 0 auto;
+font-family: Tahoma, Verdana, Arial, sans-serif; }
+</style>
+</head>
+<body>
+<h1>Welcome to CUSTOM NGINX!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+
+```
+![image](https://github.com/user-attachments/assets/790fd4a8-52e4-4d3f-b481-274ffbd4a87a)
+
+
